@@ -38,4 +38,15 @@ public interface GielinorSpeaksConfig extends Config {
 	{
 		return true;
 	}
+
+	@SuppressWarnings("unused") // Used by RuneLite config system
+	@ConfigItem(
+		keyName = "apiBaseUrl",
+		name = "API Base URL",
+		description = "Voiceover-mage API base URL (requires plugin restart)"
+	)
+	default String apiBaseUrl()
+	{
+		return "http://localhost:8000/api/v1";
+	}
 }

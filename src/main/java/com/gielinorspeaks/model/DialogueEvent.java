@@ -1,5 +1,6 @@
 package com.gielinorspeaks.model;
 
+import com.gielinorspeaks.api.model.SpeakRequest;
 import lombok.Value;
 import javax.annotation.Nullable;
 
@@ -36,4 +37,14 @@ public class DialogueEvent {
 	 */
 	@Nullable
 	Integer animationId;
+
+	/**
+	 * Convert this dialogue event to an API speak request.
+	 * Includes animation ID for emotion mapping if available.
+	 *
+	 * @return A SpeakRequest suitable for the voiceover-mage API
+	 */
+	public SpeakRequest toSpeakRequest() {
+		return SpeakRequest.of(dialogueText, animationId);
+	}
 }
