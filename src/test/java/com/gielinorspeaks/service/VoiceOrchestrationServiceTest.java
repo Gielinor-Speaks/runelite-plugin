@@ -42,6 +42,7 @@ public class VoiceOrchestrationServiceTest {
 			"Hans",
 			"Hello, adventurer!",
 			DialogueSource.DIALOGUE_BOX,
+			null,
 			null
 		);
 
@@ -87,7 +88,8 @@ public class VoiceOrchestrationServiceTest {
 			"Duke Horacio",
 			"Welcome!",
 			DialogueSource.DIALOGUE_BOX,
-			588 // Animation ID
+			588, // Animation ID
+			null
 		);
 
 		SpeakResponse mockResponse = new SpeakResponse(
@@ -127,6 +129,7 @@ public class VoiceOrchestrationServiceTest {
 			"Hans",
 			"Hello!",
 			DialogueSource.DIALOGUE_BOX,
+			null,
 			null
 		);
 
@@ -159,6 +162,7 @@ public class VoiceOrchestrationServiceTest {
 			"Unknown",
 			"Test",
 			DialogueSource.DIALOGUE_BOX,
+			null,
 			null
 		);
 
@@ -183,6 +187,7 @@ public class VoiceOrchestrationServiceTest {
 			"Hans",
 			"Test",
 			DialogueSource.DIALOGUE_BOX,
+			null,
 			null
 		);
 
@@ -207,6 +212,7 @@ public class VoiceOrchestrationServiceTest {
 			"Hans",
 			"First dialogue",
 			DialogueSource.DIALOGUE_BOX,
+			null,
 			null
 		);
 
@@ -215,6 +221,7 @@ public class VoiceOrchestrationServiceTest {
 			"Cook",
 			"Second dialogue",
 			DialogueSource.DIALOGUE_BOX,
+			null,
 			null
 		);
 
@@ -268,6 +275,7 @@ public class VoiceOrchestrationServiceTest {
 			"Hans",
 			"Test",
 			DialogueSource.DIALOGUE_BOX,
+			null,
 			null
 		);
 
@@ -303,6 +311,7 @@ public class VoiceOrchestrationServiceTest {
 			"Hans",
 			"Test",
 			DialogueSource.DIALOGUE_BOX,
+			null,
 			null
 		);
 

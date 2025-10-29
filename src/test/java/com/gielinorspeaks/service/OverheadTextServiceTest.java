@@ -2,6 +2,7 @@ package com.gielinorspeaks.service;
 
 import com.gielinorspeaks.model.DialogueEvent;
 import com.gielinorspeaks.model.DialogueSource;
+import net.runelite.api.Client;
 import net.runelite.api.NPC;
 import net.runelite.api.Player;
 import net.runelite.api.events.OverheadTextChanged;
@@ -19,12 +20,20 @@ import static org.mockito.Mockito.*;
  * Focus: Ensuring NPC overhead text is properly detected and player overhead text is filtered out.
  */
 public class OverheadTextServiceTest {
+	private Client mockClient;
 	private OverheadTextService service;
 	private List<DialogueEvent> capturedDialogueEvents;
 
 	@Before
 	public void setUp() {
-		service = new OverheadTextService();
+		mockClient = mock(Client.class);
+
+		// Mock local player for player name replacement
+		Player mockLocalPlayer = mock(Player.class);
+		when(mockLocalPlayer.getName()).thenReturn("TestPlayer");
+		when(mockClient.getLocalPlayer()).thenReturn(mockLocalPlayer);
+
+		service = new OverheadTextService(mockClient);
 		capturedDialogueEvents = new ArrayList<>();
 		service.setDialogueCallback(capturedDialogueEvents::add);
 	}
@@ -199,5 +208,30 @@ public class OverheadTextServiceTest {
 		assertEquals("Overhead text should be preserved as-is",
 			"Text with   multiple   spaces",
 			capturedDialogueEvents.get(0).getDialogueText());
+	}
+
+	@Test
+	public void testOnOverheadTextChanged_capturesPlayerName() {
+		// Arrange
+		NPC mockNpc = mock(NPC.class);
+		when(mockNpc.getId()).thenReturn(1234);
+		when(mockNpc.getName()).thenReturn("Guard");
+
+		OverheadTextChanged event = mock(OverheadTextChanged.class);
+		when(event.getActor()).thenReturn(mockNpc);
+		when(event.getOverheadText()).thenReturn("Stop right there, TestPlayer!");
+
+		// Act
+		service.onOverheadTextChanged(event);
+
+		// Assert - Player name should be captured for replacement later
+		assertEquals("Should capture one event", 1, capturedDialogueEvents.size());
+		DialogueEvent dialogueEvent = capturedDialogueEvents.get(0);
+		assertEquals("Player name should be captured", "TestPlayer", dialogueEvent.getPlayerName());
+
+		// Verify that toSpeakRequest() replaces player name with "Adventurer"
+		assertEquals("Player name should be replaced in API request",
+			"Stop right there, Adventurer!",
+			dialogueEvent.toSpeakRequest().getText());
 	}
 }

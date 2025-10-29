@@ -55,6 +55,7 @@ public abstract class DialogueDetectionServiceTestBase {
 		when(mockNpc.getAnimation()).thenReturn(-1);
 
 		// Default player setup
+		when(mockPlayer.getName()).thenReturn("TestPlayer");
 		when(mockClient.getLocalPlayer()).thenReturn(mockPlayer);
 
 		// Mock clientThread.invokeLater to execute immediately for testing

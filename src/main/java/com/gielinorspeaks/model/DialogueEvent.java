@@ -39,12 +39,27 @@ public class DialogueEvent {
 	Integer animationId;
 
 	/**
+	 * The player's character name.
+	 * Used to replace player name with "Adventurer" in dialogue for better voice synthesis.
+	 */
+	@Nullable
+	String playerName;
+
+	/**
 	 * Convert this dialogue event to an API speak request.
 	 * Includes animation ID for emotion mapping if available.
+	 * Replaces player name with "Adventurer" for better voice synthesis.
 	 *
 	 * @return A SpeakRequest suitable for the voiceover-mage API
 	 */
 	public SpeakRequest toSpeakRequest() {
-		return SpeakRequest.of(dialogueText, animationId);
+		String sanitizedText = dialogueText;
+
+		// Replace player name with "Adventurer" for better voice synthesis
+		if (playerName != null && !playerName.isEmpty()) {
+			sanitizedText = dialogueText.replace(playerName, "Adventurer");
+		}
+
+		return SpeakRequest.of(sanitizedText, animationId);
 	}
 }

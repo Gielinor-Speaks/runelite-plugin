@@ -137,14 +137,15 @@ public class DialogueDetectionService {
 				return;
 			}
 
-			// Fallback: try to get NPC from current interaction if we don't have one cached
-			if (cachedInteractingNpc == null) {
+			// Validate cached NPC and refresh if null or invalid (e.g., NPC died/respawned)
+			if (cachedInteractingNpc == null || cachedInteractingNpc.getId() == -1) {
 				NPC interactingNpc = getCurrentInteractingNpc();
 				if (interactingNpc != null) {
 					cachedInteractingNpc = interactingNpc;
+					log.debug("Refreshed cached NPC: {} (ID: {})", interactingNpc.getName(), interactingNpc.getId());
 				}
 				else {
-					log.warn("Dialogue widget loaded but no NPC interaction found");
+					log.warn("Dialogue widget loaded but no valid NPC interaction found");
 					return;
 				}
 			}
@@ -171,7 +172,10 @@ public class DialogueDetectionService {
 			// Fire dialogue event
 			if (dialogueCallback != null) {
 				DialogueEvent dialogueEvent = createDialogueEvent(cleanedText);
-				dialogueCallback.accept(dialogueEvent);
+				// Only fire callback if we have a valid NPC ID (not -1)
+				if (dialogueEvent != null) {
+					dialogueCallback.accept(dialogueEvent);
+				}
 			}
 		});
 	}
@@ -201,11 +205,25 @@ public class DialogueDetectionService {
 	/**
 	 * Creates a DialogueEvent with NPC details and animation ID.
 	 * Only called when we have new dialogue to report.
+	 * Returns null if the NPC ID is invalid (e.g., NPC has despawned).
 	 */
+	@Nullable
 	private DialogueEvent createDialogueEvent(String cleanedText) {
 		int npcId = cachedInteractingNpc.getId();
+
+		// Validate NPC ID - RuneLite returns -1 for despawned/invalid NPCs
+		// This is a safety net; we should have already refreshed the NPC earlier
+		if (npcId == -1) {
+			log.debug("Skipping dialogue event - NPC has invalid ID despite refresh attempt");
+			return null;
+		}
+
 		String npcName = cachedInteractingNpc.getName();
 		Integer animationId = extractAnimationId();
+
+		// Get player name for text sanitization (replacing player name with "Adventurer")
+		Player localPlayer = client.getLocalPlayer();
+		String playerName = localPlayer != null ? localPlayer.getName() : null;
 
 		log.debug("Dialogue: {} ({}): '{}'{}",
 			npcName, npcId, cleanedText,
@@ -216,7 +234,8 @@ public class DialogueDetectionService {
 			npcName != null ? npcName : "Unknown",
 			cleanedText,
 			DialogueSource.DIALOGUE_BOX,
-			animationId
+			animationId,
+			playerName
 		);
 	}
 
@@ -310,8 +329,14 @@ public class DialogueDetectionService {
 	 */
 	private void fireDialogueEndCallback(String reason) {
 		if (cachedInteractingNpc != null && dialogueEndCallback != null) {
-			log.debug("{} - dialogue ended with NPC ID: {}", reason, cachedInteractingNpc.getId());
-			dialogueEndCallback.accept(cachedInteractingNpc.getId());
+			int npcId = cachedInteractingNpc.getId();
+			// Validate NPC ID before firing callback (NPC may have despawned)
+			if (npcId == -1) {
+				log.debug("Skipping dialogue end callback - NPC has invalid ID");
+				return;
+			}
+			log.debug("{} - dialogue ended with NPC ID: {}", reason, npcId);
+			dialogueEndCallback.accept(npcId);
 		}
 	}
 

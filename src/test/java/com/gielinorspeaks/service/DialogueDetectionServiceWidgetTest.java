@@ -345,4 +345,37 @@ public class DialogueDetectionServiceWidgetTest extends DialogueDetectionService
 		// Assert - Should fire again because state was reset
 		assertEquals("Should fire dialogue event after reset", 1, capturedDialogueEvents.size());
 	}
+
+	@Test
+	public void testOnWidgetLoaded_capturesPlayerNameForReplacement() {
+		// Arrange
+		setupNpcInteraction();
+
+		WidgetLoaded event = mock(WidgetLoaded.class);
+		when(event.getGroupId()).thenReturn(InterfaceID.CHAT_LEFT);
+
+		when(mockClient.getWidget(InterfaceID.ChatLeft.TEXT)).thenReturn(mockDialogWidget);
+		when(mockDialogWidget.isHidden()).thenReturn(false);
+		when(mockDialogWidget.getText()).thenReturn("Greetings, TestPlayer! Welcome to Lumbridge.");
+
+		// Act
+		service.onWidgetLoaded(event);
+
+		// Assert
+		assertEquals("Should capture one dialogue event", 1, capturedDialogueEvents.size());
+		DialogueEvent dialogueEvent = capturedDialogueEvents.get(0);
+
+		// Verify player name was captured
+		assertEquals("Player name should be captured", "TestPlayer", dialogueEvent.getPlayerName());
+
+		// Verify original text is preserved in the event
+		assertEquals("Original dialogue text should be preserved",
+			"Greetings, TestPlayer! Welcome to Lumbridge.",
+			dialogueEvent.getDialogueText());
+
+		// Verify that toSpeakRequest() replaces player name with "Adventurer"
+		assertEquals("Player name should be replaced with Adventurer in API request",
+			"Greetings, Adventurer! Welcome to Lumbridge.",
+			dialogueEvent.toSpeakRequest().getText());
+	}
 }

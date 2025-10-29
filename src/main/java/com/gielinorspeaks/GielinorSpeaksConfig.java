@@ -3,6 +3,8 @@ package com.gielinorspeaks;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
+import net.runelite.client.config.Range;
+import net.runelite.client.config.Units;
 
 @ConfigGroup("gielinorspeaks")
 public interface GielinorSpeaksConfig extends Config {
@@ -48,5 +50,40 @@ public interface GielinorSpeaksConfig extends Config {
 	default String apiBaseUrl()
 	{
 		return "http://localhost:8000/api/v1";
+	}
+
+	@SuppressWarnings("unused") // Used by RuneLite config system
+	@Range(min = 0, max = 100)
+	@Units(Units.PERCENT)
+	@ConfigItem(
+		keyName = "volume",
+		name = "Volume",
+		description = "Audio playback volume (0-100%)"
+	)
+	default int volume()
+	{
+		return 100;
+	}
+
+	@SuppressWarnings("unused") // Used by RuneLite config system
+	@ConfigItem(
+		keyName = "muted",
+		name = "Mute",
+		description = "Mute all voice playback"
+	)
+	default boolean muted()
+	{
+		return false;
+	}
+
+	@SuppressWarnings("unused") // Used by RuneLite config system
+	@ConfigItem(
+		keyName = "showStatusIndicator",
+		name = "Show Status Indicator",
+		description = "Display status icon in the top-right corner showing plugin state"
+	)
+	default boolean showStatusIndicator()
+	{
+		return true;
 	}
 }

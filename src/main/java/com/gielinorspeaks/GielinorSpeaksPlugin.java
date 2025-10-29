@@ -3,8 +3,10 @@ package com.gielinorspeaks;
 import com.gielinorspeaks.api.VoiceApiClient;
 import com.gielinorspeaks.audio.AudioPlayer;
 import com.gielinorspeaks.model.DialogueEvent;
+import com.gielinorspeaks.model.VoiceState;
 import com.gielinorspeaks.service.DialogueDetectionService;
 import com.gielinorspeaks.service.OverheadTextService;
+import com.gielinorspeaks.service.StatusIndicatorService;
 import com.gielinorspeaks.service.VoiceOrchestrationService;
 import com.google.inject.Provides;
 import javax.inject.Inject;
@@ -12,15 +14,17 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.EventBus;
+import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.ui.overlay.OverlayManager;
 
 @Slf4j
 @PluginDescriptor(
 	name = "Gielinor Speaks"
 )
 public class GielinorSpeaksPlugin extends Plugin {
-	@SuppressWarnings("unused") // Used for future features
 	@Inject
 	private Client client;
 
@@ -29,6 +33,9 @@ public class GielinorSpeaksPlugin extends Plugin {
 
 	@Inject
 	private EventBus eventBus;
+
+	@Inject
+	private OverlayManager overlayManager;
 
 	@Inject
 	private DialogueDetectionService dialogueDetectionService;
@@ -40,6 +47,7 @@ public class GielinorSpeaksPlugin extends Plugin {
 	private VoiceApiClient apiClient;
 	private AudioPlayer audioPlayer;
 	private VoiceOrchestrationService voiceService;
+	private StatusIndicatorService statusIndicatorService;
 
 	// Track the currently interacting NPC ID
 	private volatile Integer currentInteractingNpcId = null;
@@ -52,6 +60,18 @@ public class GielinorSpeaksPlugin extends Plugin {
 		apiClient = new VoiceApiClient(config.apiBaseUrl());
 		audioPlayer = new AudioPlayer();
 		voiceService = new VoiceOrchestrationService(apiClient, audioPlayer);
+
+		// Initialize status indicator service
+		statusIndicatorService = new StatusIndicatorService(overlayManager, client, config);
+
+		// Apply volume and mute settings from config
+		audioPlayer.setVolume(config.volume());
+		audioPlayer.setMuted(config.muted());
+
+		// Set up state change callback to update status indicator
+		voiceService.setStateChangeCallback((state, streamCount) -> {
+			statusIndicatorService.updateState(state, streamCount);
+		});
 
 		// Check API health
 		apiClient.checkHealth().thenAccept(healthy -> {
@@ -72,11 +92,21 @@ public class GielinorSpeaksPlugin extends Plugin {
 		// Register services with event bus
 		eventBus.register(dialogueDetectionService);
 		eventBus.register(overheadTextService);
+
+		// Initialize status indicator service (will only show when LOADING or PLAYING)
+		// No need to show on startup - it will appear automatically when dialogue is detected
+		VoiceState initialState = config.enabled() ? VoiceState.IDLE : VoiceState.DISABLED;
+		statusIndicatorService.show(initialState);
 	}
 
 	@Override
 	protected void shutDown() {
 		log.info("Gielinor Speaks has stopped!");
+
+		// Hide status indicator
+		if (statusIndicatorService != null) {
+			statusIndicatorService.hide();
+		}
 
 		// Shutdown voice services
 		if (voiceService != null) {
@@ -91,6 +121,7 @@ public class GielinorSpeaksPlugin extends Plugin {
 		dialogueDetectionService.setDialogueCallback(null);
 		dialogueDetectionService.setDialogueEndCallback(null);
 		overheadTextService.setDialogueCallback(null);
+		voiceService.setStateChangeCallback(null);
 	}
 
 	/**
@@ -144,6 +175,48 @@ public class GielinorSpeaksPlugin extends Plugin {
 
 		// Delegate to voice orchestration service
 		voiceService.handleDialogueEnd(npcId);
+	}
+
+	/**
+	 * Handle config changes to apply settings in real-time
+	 */
+	@Subscribe
+	public void onConfigChanged(ConfigChanged event) {
+		if (!event.getGroup().equals("gielinorspeaks")) {
+			return;
+		}
+
+		switch (event.getKey()) {
+			case "volume":
+				if (audioPlayer != null) {
+					audioPlayer.setVolume(config.volume());
+					log.debug("Volume updated to {}%", config.volume());
+				}
+				break;
+
+			case "muted":
+				if (audioPlayer != null) {
+					audioPlayer.setMuted(config.muted());
+					log.debug("Muted set to {}", config.muted());
+				}
+				break;
+
+			case "enabled":
+				if (statusIndicatorService != null) {
+					VoiceState newState = config.enabled() ? VoiceState.IDLE : VoiceState.DISABLED;
+					statusIndicatorService.updateState(newState, 0);
+				}
+				// Stop all audio when plugin is disabled
+				if (!config.enabled() && audioPlayer != null) {
+					log.info("Plugin disabled - stopping all audio");
+					audioPlayer.stopAll();
+				}
+				break;
+
+			case "showStatusIndicator":
+				// The overlay checks this config each render, no action needed
+				break;
+		}
 	}
 
 	@SuppressWarnings("unused") // Used by RuneLite dependency injection
