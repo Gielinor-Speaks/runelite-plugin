@@ -21,21 +21,12 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Singleton
 public class VoiceApiClient {
-    private static final String DEFAULT_BASE_URL = "http://localhost:8000/api/v1";
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     private static final int TIMEOUT_SECONDS = 30;
 
     private final OkHttpClient httpClient;
     private final Gson gson;
     private final String baseUrl;
-
-    /**
-     * Create a VoiceApiClient with default base URL.
-     */
-    @Inject
-    public VoiceApiClient() {
-        this(DEFAULT_BASE_URL);
-    }
 
     /**
      * Create a VoiceApiClient with custom base URL.
